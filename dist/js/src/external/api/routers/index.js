@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.routes = void 0;
-const order_router_1 = require("./order-router");
 const express_1 = __importDefault(require("express"));
+const paciente_router_1 = require("./paciente-router");
 exports.routes = express_1.default.Router();
-exports.routes.use("/order", order_router_1.orderRouter);
+exports.routes.use("/paciente", paciente_router_1.pacienteRouter);

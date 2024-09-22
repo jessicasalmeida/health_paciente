@@ -4,7 +4,7 @@ import app from "./server";
 import { routes } from "./external/api/routers";
 import { connectToDataBase } from "./external/data-sources/mongodb/db-connect";
 
-const port = 5000;
+const port = 3000;
 
 connectToDataBase()
     .then(()=> {

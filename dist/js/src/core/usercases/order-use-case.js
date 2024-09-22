@@ -41,6 +41,10 @@ class OrderUseCase {
                 return nOrder;
             }
             else {
+                OrderUseCase.mq = new mq_1.RabbitMQ();
+                yield OrderUseCase.mq.connect();
+                yield OrderUseCase.mq.publish('rollback_new_order', { cart: newOrder.cart });
+                yield OrderUseCase.mq.close();
                 return null;
             }
         });
@@ -134,6 +138,7 @@ class OrderUseCase {
             yield OrderUseCase.mq.connect();
             yield OrderUseCase.mq.consume('new_order', (message) => __awaiter(this, void 0, void 0, function* () {
                 const newOrder = message;
+                console.log("Fila new_order: ID: " + newOrder.cart.id);
                 OrderUseCase.receiveOrder(newOrder, orderGateway);
             }));
         });

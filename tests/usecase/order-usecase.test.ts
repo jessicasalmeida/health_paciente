@@ -1,135 +1,92 @@
-import { CartItensDTO, ItensDTO, NewOrderDTO, ProductDTO } from "../../src/common/dtos/order.dto";
-import { generateRandomString } from "../../src/common/helpers/generators";
-import { OrderEntity } from "../../src/core/entities/order";
-import { OrderUseCase } from "../../src/core/usercases/order-use-case";
-import { OrderGateway } from "../../src/operation/gateways/order";
+import { DoctorRepository } from '../../src/external/data-sources/mongodb/doctor-respository-mongo';
+import { PasswordHasher } from '../../src/operation/controllers/password-hasher-controller';
+import { DoctorUseCase } from '../../src/core/usercases/doctor-use-case';
+import { ValidationError } from '../../src/common/errors/validation-error';
 
-// Mock OrderGateway
-const mockOrderGateway = {} as OrderGateway;
 
-describe('OrderUseCase', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
+const mockDoctorRepository: Partial<DoctorRepository> = {
+  save: jest.fn(),
+};
 
-    it('should receive order', async () => {
-        const date = new Date();
-        const mockProductDTO: ProductDTO = {id: "0", name: "",  options: "", price:0, timeToPrepare:15, category: "", status: true};
-        const mockItensDTO: ItensDTO[] = [{id: 0, options: "", price: 0, product: mockProductDTO}];
-        const mockCartItens: CartItensDTO = {id : "0", user: "", totalValue: 0, status: "New", payment:true, estimatedTime: 15, cartItens: mockItensDTO};
-        const mockNewOrder: NewOrderDTO = { receiveDate: date, deliveryTime:15, status: "New", cart: mockCartItens};
-       
-        const mockOrderEntity = new OrderEntity('mockId', new Date(), 30, 'RECEIVED', mockNewOrder.cart);
+const mockPasswordHasher: Partial<PasswordHasher> = {
+  hash: jest.fn(() => Promise.resolve('hashed_password')),
+};
 
-        // Mocking getAllActiveOrders
-        jest.spyOn(OrderUseCase, 'getAllActiveOrders').mockResolvedValueOnce([mockOrderEntity]);
+const mockTokenService: Partial<TokenService> = {
+    generateToken: jest.fn(() => 'token'),
+  };
 
-        // Mocking create method of OrderGateway
-        mockOrderGateway.create = jest.fn().mockResolvedValueOnce(mockOrderEntity);
+describe('CreateDoctorUseCase', () => {
+  let createDoctorUseCase: DoctorUseCase;
 
-        const result = await OrderUseCase.receiveOrder(mockNewOrder, mockOrderGateway);
+  beforeEach(() => {
+    createDoctorUseCase = new DoctorUseCase(
+      mockDoctorRepository as DoctorRepository,
+      mockPasswordHasher as PasswordHasher
+    );
+  });
 
-        expect(result).toEqual(mockOrderEntity);
-    });
+  it('should create a doctor successfully', async () => {
+    const doctorData = {
+      id: '1',
+      name: 'Dr. João',
+      cpf: '12345678910',
+      crm: 'CRM12345',
+      email: 'doctor@example.com',
+      password: 'password123',
+    };
 
-    it('should prepare order', async () => {
-        const mockOrderId = 'mockId';
-        const mockOrderEntity = new OrderEntity(mockOrderId, new Date(), 30, 'RECEIVED', {});
+    await createDoctorUseCase.createDoctor(doctorData);
 
-        // Mocking findOne and update methods of OrderGateway
-        mockOrderGateway.findOne = jest.fn().mockResolvedValueOnce(mockOrderEntity);
-        mockOrderGateway.update = jest.fn().mockResolvedValueOnce(mockOrderEntity);
+    expect(mockPasswordHasher.hash).toHaveBeenCalledWith('password123');
+    expect(mockDoctorRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Dr. João',
+        crm: 'CRM12345',
+        email: 'doctor@example.com',
+        password: 'hashed_password',
+      })
+    );
+  });
 
-        const result = await OrderUseCase.prepareOrder(mockOrderId, mockOrderGateway);
-
-        expect(result).toEqual(mockOrderEntity);
-        expect(mockOrderGateway.update).toHaveBeenCalledWith(mockOrderId, expect.objectContaining({
-            status: 'PREPARING'
-        }));
-    });
-
-    it('should estimate delivery', async () => {
-        const mockOrderId = 'mockId';
-        const mockOrderEntity = new OrderEntity(mockOrderId, new Date(), 30, 'RECEIVED', {});
-
-        // Mocking findOne method of OrderGateway
-        mockOrderGateway.findOne = jest.fn().mockResolvedValueOnce(mockOrderEntity);
-
-        const result = await OrderUseCase.estimateDelivery(mockOrderId, mockOrderGateway);
-
-        expect(result).toContain('The estimate time to order is ready');
-    });
-
-    it('should update status to ready', async () => {
-        const mockOrderId = 'mockId';
-        const mockOrderEntity = new OrderEntity(mockOrderId, new Date(), 30, 'RECEIVED', {});
-
-        // Mocking findOne and update methods of OrderGateway
-        mockOrderGateway.findOne = jest.fn().mockResolvedValueOnce(mockOrderEntity);
-        mockOrderGateway.update = jest.fn().mockResolvedValueOnce(mockOrderEntity);
-
-        const result = await OrderUseCase.updateStatusToReady(mockOrderId, mockOrderGateway);
-
-        expect(result).toContain('Order não encontrada');
-        expect(mockOrderGateway.update).toHaveBeenCalledWith(mockOrderId, expect.objectContaining({
-            status: 'READY'
-        }));
-    });
-
-    it('should update status to ready', async () => {
-        const mockOrderId = '0';
-        const mockOrderEntity = new OrderEntity(mockOrderId, new Date(), 30, 'RECEIVED', {});
-
-        // Mocking findOne and update methods of OrderGateway
-        mockOrderGateway.findOne = jest.fn().mockResolvedValueOnce(mockOrderEntity);
-        mockOrderGateway.update = jest.fn().mockResolvedValueOnce(mockOrderEntity);
-
-        const result = await OrderUseCase.updateStatusToReady(mockOrderId, mockOrderGateway);
-        expect(mockOrderGateway.update).toHaveBeenCalledWith(mockOrderId, expect.objectContaining({
-            status: 'READY'
-        }));
-    });
-
-    it('should update status to delivered', async () => {
-        const mockOrderId = 'mockId';
-        const mockOrderEntity = new OrderEntity(mockOrderId, new Date(), 30, 'RECEIVED', {});
-
-        // Mocking findOne and update methods of OrderGateway
-        mockOrderGateway.findOne = jest.fn().mockResolvedValueOnce(mockOrderEntity);
-        mockOrderGateway.update = jest.fn().mockResolvedValueOnce(mockOrderEntity);
-
-        const result = await OrderUseCase.updateStatusToDelivered(mockOrderId, mockOrderGateway);
-
-        expect(result).toEqual(mockOrderEntity);
-        expect(mockOrderGateway.update).toHaveBeenCalledWith(mockOrderId, expect.objectContaining({
-            status: 'DELIVERED'
-        }));
-    });
-
-    it('should update status to closed', async () => {
-        const mockOrderId = 'mockId';
-        const mockOrderEntity = new OrderEntity(mockOrderId, new Date(), 30, 'RECEIVED', {});
-
-        // Mocking findOne and update methods of OrderGateway
-        mockOrderGateway.findOne = jest.fn().mockResolvedValueOnce(mockOrderEntity);
-        mockOrderGateway.update = jest.fn().mockResolvedValueOnce(mockOrderEntity);
-
-        const result = await OrderUseCase.updateStatusToClosed(mockOrderId, mockOrderGateway);
-
-        expect(result).toEqual(mockOrderEntity);
-        expect(mockOrderGateway.update).toHaveBeenCalledWith(mockOrderId, expect.objectContaining({
-            status: 'CLOSED'
-        }));
-    });
-
-    it('should get all active orders', async () => {
-        const mockOrderEntity = new OrderEntity('mockId', new Date(), 30, 'RECEIVED', {});
-
-        // Mocking getAll method of OrderGateway
-        mockOrderGateway.getAll = jest.fn().mockResolvedValueOnce([mockOrderEntity]);
-
-        const result = await OrderUseCase.getAllActiveOrders(mockOrderGateway);
-
-        expect(result).toEqual([mockOrderEntity]);
-    });
+  it('should throw validation error when required fields are missing', async () => {
+    await expect(createDoctorUseCase.createDoctor({ email: 'doctor@example.com' })).rejects.toThrow(ValidationError);
+  });
 });
+
+describe('LoginDoctorUseCase', () => {
+    let loginDoctorUseCase: DoctorUseCase;
+  
+    beforeEach(() => {
+      loginDoctorUseCase = new DoctorUseCase(
+        mockDoctorRepository as DoctorRepository,
+        mockPasswordHasher as PasswordHasher,
+        mockTokenService as TokenService
+      );
+    });
+  
+    it('should login doctor successfully with correct credentials', async () => {
+      mockDoctorRepository.findByEmail = jest.fn(() =>
+        Promise.resolve({
+            id: '001',
+            cpf: '001',
+            name: 'Dr. João',
+            crm: 'CRM12345',
+            email: 'doctor@example.com',
+            password: 'hashed_password',
+        })
+      );
+  
+      const token = await loginDoctorUseCase.autenticateDoctor('doctor@example.com', 'password123');
+  
+      expect(mockPasswordHasher.compare).toHaveBeenCalledWith('password123', 'hashed_password');
+      expect(mockTokenService.generateToken).toHaveBeenCalledWith({ doctorId: '1' });
+      expect(token).toBe('token');
+    });
+  
+    it('should throw authentication error for invalid credentials', async () => {
+      mockPasswordHasher.compare = jest.fn(() => Promise.resolve(false));
+  
+      await expect(loginDoctorUseCase.autenticateDoctor('doctor@example.com', 'wrong_password')).rejects.toThrow(AuthenticationError);
+    });
+  });

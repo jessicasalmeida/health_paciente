@@ -53,6 +53,34 @@ class RabbitMQ {
             this.channel.sendToQueue(queue, Buffer.from(JSON.stringify(message)));
         });
     }
+    publishReply(queue, message, correlationId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.channel.sendToQueue(queue, Buffer.from(JSON.stringify(message)), { correlationId: correlationId });
+        });
+    }
+    publishExclusive(queue, message) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let resposta = "";
+            const correlationId = generateCorrelationId();
+            const replyQueue = yield this.channel.assertQueue('', { exclusive: true });
+            const message_with = {
+                message,
+                replyTo: replyQueue.queue,
+                correlationId,
+            };
+            this.channel.sendToQueue(queue, Buffer.from(JSON.stringify(message_with)), { correlationId, replyTo: replyQueue.queue });
+            yield new Promise((resolve) => {
+                this.channel.consume(replyQueue.queue, (msg) => {
+                    if (msg.properties.correlationId === correlationId) {
+                        this.channel.ack(msg);
+                        resposta = JSON.parse(msg.content.toString());
+                        resolve(JSON.parse(msg.content.toString()).inStock);
+                    }
+                });
+            });
+            return resposta;
+        });
+    }
     consume(queue, callback) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.channel.assertQueue(queue, { durable: true });
@@ -73,3 +101,6 @@ class RabbitMQ {
     }
 }
 exports.RabbitMQ = RabbitMQ;
+function generateCorrelationId() {
+    return Math.random().toString() + Math.random().toString();
+}
