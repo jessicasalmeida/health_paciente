@@ -29,6 +29,11 @@ class PacienteUseCase {
             return this.pacienteRepository.save(doctor);
         });
     }
+    findById(id) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.pacienteRepository.findById(id);
+        });
+    }
     findDoctors() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -46,13 +51,14 @@ class PacienteUseCase {
     }
     reserve(idPaciente, idAppointment) {
         return __awaiter(this, void 0, void 0, function* () {
+            const paciente = yield this.findById(idPaciente);
             try {
                 this.mq = new mq_1.RabbitMQ();
                 yield this.mq.connect();
                 console.log("Publicado newReserve");
-                const responsta = yield this.mq.publishExclusive('newReserve', { idPaciente: idPaciente, idAppointment: idAppointment });
+                yield this.mq.publish('newReserve', { paciente: paciente, idAppointment: idAppointment });
                 yield this.mq.close();
-                return responsta;
+                return true;
             }
             catch (ConflictError) {
                 throw new Error("Erro ao publicar mensagem");

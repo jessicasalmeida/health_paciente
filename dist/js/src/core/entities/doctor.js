@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Doctor = void 0;
 class Doctor {
-    constructor(id, name, cpf, crm, email, password) {
-        this.id = id;
+    constructor(_id, name, cpf, crm, email, password) {
+        this._id = _id;
         this.name = name;
         this.cpf = cpf;
         this.crm = crm;
