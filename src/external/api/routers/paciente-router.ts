@@ -29,7 +29,7 @@ pacienteRouter.get('/listDoctors/', async (req, res) => {
     const order = await controller.listDoctors(req,res);
 });
 
-pacienteRouter.get('/reserve/', async (req, res) => {
+pacienteRouter.post('/reserve/', async (req, res) => {
     /*  #swagger.tags = ['Doctor']
     #swagger.summary = 'schedule'
     #swagger.description = 'Endpoint to schedule an appointment' */
