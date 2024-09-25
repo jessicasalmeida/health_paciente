@@ -4,11 +4,13 @@ import { PacienteController } from "../../../operation/controllers/paciente-cont
 import { PacienteUseCase as PacienteUseCase } from "../../../core/usercases/paciente-use-case";
 import { PasswordHasher } from "../../../operation/controllers/password-hasher-controller";
 import { RabbitMQ } from "../../mq/mq";
+import { Cognito } from "../../cognito/new_user";
 
 const mq = new RabbitMQ();
 const repository = new PacienteRepositoryImpl();
 const passwordHasher = new PasswordHasher();
-const useCase = new PacienteUseCase(repository, passwordHasher, mq);
+const cognito = new Cognito();
+const useCase = new PacienteUseCase(repository, passwordHasher, mq, cognito);
 const controller = new PacienteController(useCase);
 
 export const pacienteRouter = Router();

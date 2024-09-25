@@ -3,13 +3,14 @@ import { PacienteRepository } from '../../common/interfaces/paciente-data-source
 import { RabbitMQ } from '../../external/mq/mq';
 import { PasswordHasher } from '../../operation/controllers/password-hasher-controller';
 import { Paciente } from '../entities/paciente';
-import { Appointment } from '../entities/appointment';
 import { Doctor } from '../entities/doctor';
+import { Cognito } from '../../external/cognito/new_user';
 
 export class PacienteUseCase {
   constructor(
     private pacienteRepository: PacienteRepository,
-    private passwordHasher: PasswordHasher, private mq: RabbitMQ
+    private passwordHasher: PasswordHasher, private mq: RabbitMQ,
+    private cognito: Cognito
   ) { }
 
   async create(pacienteData: Partial<Paciente>): Promise<Paciente> {
@@ -18,27 +19,32 @@ export class PacienteUseCase {
     }
 
     const hashedPassword = await this.passwordHasher.hash(pacienteData.password);
-    const doctor = new Paciente(
+    const paciente = new Paciente(
       pacienteData._id!,
       pacienteData.name!,
       pacienteData.cpf!,
       pacienteData.email!,
-      hashedPassword
+      hashedPassword,
+      "000"
     );
-    return this.pacienteRepository.save(doctor);
+
+    const respostaCognito = await this.cognito.createUser(pacienteData.email);
+    await this.cognito.setUserPassword(pacienteData.email, pacienteData.password);
+    pacienteData.idAws = respostaCognito
+    return this.pacienteRepository.save(paciente);
   }
 
   async findById(id: string): Promise<Paciente> {
     return this.pacienteRepository.findById(id);
   }
 
-  async findDoctors(): Promise<Paciente[]> {
+  async findDoctors(): Promise<Doctor[]> {
     try {
       this.mq = new RabbitMQ();
       await this.mq.connect();
       console.log("Publicado listDoctors");
       const responsta = await this.mq.publishExclusive('listDoctors', "");
-      await this.mq.close();      
+      await this.mq.close();
       return responsta as unknown as Doctor[];
     }
     catch (ConflictError) {
@@ -52,8 +58,8 @@ export class PacienteUseCase {
       this.mq = new RabbitMQ();
       await this.mq.connect();
       console.log("Publicado newReserve");
-      await this.mq.publish('newReserve', {paciente: paciente, idAppointment:idAppointment});
-      await this.mq.close();      
+      await this.mq.publish('newReserve', { paciente: paciente, idAppointment: idAppointment });
+      await this.mq.close();
       return true;
     }
     catch (ConflictError) {
@@ -67,8 +73,8 @@ export class PacienteUseCase {
       this.mq = new RabbitMQ();
       await this.mq.connect();
       console.log("Publicado listAppointment");
-      const responsta = await this.mq.publishExclusive('listAppointment', { id: id});
-      await this.mq.close();      
+      const responsta = await this.mq.publishExclusive('listAppointment', { id: id });
+      await this.mq.close();
       return responsta;
     }
     catch (ConflictError) {

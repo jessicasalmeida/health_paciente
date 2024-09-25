@@ -4,8 +4,8 @@ on:
     branches: [ master ]
 
 env:
-  ECR_REPOSITORY: order-service
-  EKS_CLUSTER_NAME: restaurante-fiap 
+  ECR_REPOSITORY: paciente
+  EKS_CLUSTER_NAME: health-ecs-cluster
   AWS_REGION: us-east-1
 
 jobs:
@@ -42,5 +42,3 @@ jobs:
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-    - name: Update kube config
-      run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
