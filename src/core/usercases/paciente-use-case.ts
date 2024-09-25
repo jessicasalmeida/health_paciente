@@ -5,6 +5,7 @@ import { PasswordHasher } from '../../operation/controllers/password-hasher-cont
 import { Paciente } from '../entities/paciente';
 import { Doctor } from '../entities/doctor';
 import { Cognito } from '../../external/cognito/new_user';
+import * as dotenv from "dotenv";
 
 export class PacienteUseCase {
   constructor(
@@ -82,3 +83,27 @@ export class PacienteUseCase {
     }
   }
 }
+
+function reserveService(paciente: Paciente, id: string): Promise<boolean> {
+  dotenv.config();
+  return fetch(String(process.env.SCHEDULE_SERVER + "/reserve/"),
+      {
+          method: 'POST',
+          headers: {
+              'content-type': 'application/json;charset=UTF-8',
+          },
+          body: JSON.stringify({paciente : paciente, idAppointment: id}),
+      })
+  .then((response) =>{
+          console.log(response);
+          if(response.status)
+            return true
+          return false
+      })
+      .catch((erro)=>{
+          console.log(erro);
+          throw new Error("Erro ao reservar o agendamento");
+      }     
+      );
+    }
+
