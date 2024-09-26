@@ -55,17 +55,7 @@ export class PacienteUseCase {
 
   async reserve(idPaciente: string, idAppointment: string): Promise<boolean> {
     const paciente = await this.findById(idPaciente);
-    try {
-      this.mq = new RabbitMQ();
-      await this.mq.connect();
-      console.log("Publicado newReserve");
-      await this.mq.publish('newReserve', { paciente: paciente, idAppointment: idAppointment });
-      await this.mq.close();
-      return true;
-    }
-    catch (ConflictError) {
-      throw new Error("Erro ao publicar mensagem");
-    }
+    return reserveService(paciente,idAppointment);  
   }
 
   async listAppointments(id: string): Promise<string> {
@@ -86,7 +76,7 @@ export class PacienteUseCase {
 
 function reserveService(paciente: Paciente, id: string): Promise<boolean> {
   dotenv.config();
-  return fetch(String(process.env.SCHEDULE_SERVER + "/reserve/"),
+  return fetch(String(process.env.SCHEDULE_SERVER + "/schedule/reserve/"),
       {
           method: 'POST',
           headers: {
@@ -96,7 +86,7 @@ function reserveService(paciente: Paciente, id: string): Promise<boolean> {
       })
   .then((response) =>{
           console.log(response);
-          if(response.status)
+          if(response.status == 200)
             return true
           return false
       })
