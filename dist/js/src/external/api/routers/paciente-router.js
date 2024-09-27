@@ -39,10 +39,14 @@ const paciente_controller_1 = require("../../../operation/controllers/paciente-c
 const paciente_use_case_1 = require("../../../core/usercases/paciente-use-case");
 const password_hasher_controller_1 = require("../../../operation/controllers/password-hasher-controller");
 const mq_1 = require("../../mq/mq");
+const new_user_1 = require("../../cognito/new_user");
+const gateway_1 = require("../../../operation/gateway/gateway");
 const mq = new mq_1.RabbitMQ();
 const repository = new paciente_respository_mongo_1.PacienteRepositoryImpl();
 const passwordHasher = new password_hasher_controller_1.PasswordHasher();
-const useCase = new paciente_use_case_1.PacienteUseCase(repository, passwordHasher, mq);
+const cognito = new new_user_1.Cognito();
+const gateway = new gateway_1.Gateway(repository);
+const useCase = new paciente_use_case_1.PacienteUseCase(gateway, passwordHasher, mq, cognito);
 const controller = new paciente_controller_1.PacienteController(useCase);
 exports.pacienteRouter = (0, express_1.Router)();
 exports.pacienteRouter.use(express_1.default.json());
@@ -58,7 +62,7 @@ exports.pacienteRouter.get('/listDoctors/', (req, res) => __awaiter(void 0, void
     #swagger.description = 'Endpoint to list all doctors' */
     const order = yield controller.listDoctors(req, res);
 }));
-exports.pacienteRouter.get('/reserve/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.pacienteRouter.post('/reserve/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     /*  #swagger.tags = ['Doctor']
     #swagger.summary = 'schedule'
     #swagger.description = 'Endpoint to schedule an appointment' */

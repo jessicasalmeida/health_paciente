@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PacienteController = void 0;
+const presenter_1 = require("../presenters/presenter");
 class PacienteController {
     constructor(pacienteUseCase) {
         this.pacienteUseCase = pacienteUseCase;
@@ -17,8 +18,8 @@ class PacienteController {
     create(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const doctor = yield this.pacienteUseCase.create(req.body);
-                res.status(201).json(doctor);
+                const paciente = yield this.pacienteUseCase.create(req.body);
+                res.status(201).json(presenter_1.Presenter.toDTO(paciente));
             }
             catch (e) {
                 res.status(400).json({ message: e.message });

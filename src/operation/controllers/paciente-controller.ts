@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PacienteUseCase } from '../../core/usercases/paciente-use-case';
+import { Presenter } from '../presenters/presenter';
 
 export class PacienteController {
   constructor(
@@ -8,8 +9,8 @@ export class PacienteController {
 
   async create(req: Request, res: Response) {
     try {
-      const doctor = await this.pacienteUseCase.create(req.body);
-      res.status(201).json(doctor);
+      const paciente = await this.pacienteUseCase.create(req.body);
+      res.status(201).json(Presenter.toDTO(paciente));
     } catch (e) {
       res.status(400).json({ message: (e as Error).message });
     }

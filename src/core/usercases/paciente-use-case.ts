@@ -1,15 +1,15 @@
 import { ValidationError } from '../../common/errors/validation-error';
-import { PacienteRepository } from '../../common/interfaces/paciente-data-source';
 import { RabbitMQ } from '../../external/mq/mq';
 import { PasswordHasher } from '../../operation/controllers/password-hasher-controller';
 import { Paciente } from '../entities/paciente';
 import { Doctor } from '../entities/doctor';
 import { Cognito } from '../../external/cognito/new_user';
 import * as dotenv from "dotenv";
+import { Gateway } from '../../operation/gateway/gateway';
 
 export class PacienteUseCase {
   constructor(
-    private pacienteRepository: PacienteRepository,
+    private gateway: Gateway,
     private passwordHasher: PasswordHasher, private mq: RabbitMQ,
     private cognito: Cognito
   ) { }
@@ -32,11 +32,11 @@ export class PacienteUseCase {
     const respostaCognito = await this.cognito.createUser(pacienteData.email);
     await this.cognito.setUserPassword(pacienteData.email, pacienteData.password);
     pacienteData.idAws = respostaCognito
-    return this.pacienteRepository.save(paciente);
+    return this.gateway.save(paciente);
   }
 
   async findById(id: string): Promise<Paciente> {
-    return this.pacienteRepository.findById(id);
+    return this.gateway.findById(id);
   }
 
   async findDoctors(): Promise<Doctor[]> {
